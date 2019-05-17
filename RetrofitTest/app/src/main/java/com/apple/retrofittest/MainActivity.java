@@ -27,11 +27,13 @@ import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import static com.apple.retrofittest.RetrofitApplication.spfapp;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private Api api;
-    private Button button;
-    private EditText phone;
+    private Button button,bn_login,bn_sms;
+    private EditText phone,pword,gotcode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,7 +50,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .build();
 
          api =retrofit.create(Api.class);
-
 
     }
 
@@ -74,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 .header("CURTIME", CURTIME)
                                 .header("NONCE", NONCE + "")
                                 .header("OPENKEY", md5(APPID + NONCE + CURTIME + SECRECT))
+                                .header("UserId",spfapp.UserId().get(""))
                                 .build();
 
                         return chain.proceed(request);
@@ -123,13 +125,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void init() {
 
         phone = (EditText) findViewById(R.id.phone);
-        String telphone = phone.getText().toString();
+        pword =(EditText) findViewById(R.id.pass);
+        gotcode = (EditText) findViewById(R.id.gotCode);
 
+
+        bn_login =(Button) findViewById(R.id.login);
+        bn_login.setOnClickListener(this);
+
+        bn_sms = (Button) findViewById(R.id.bn_sms_login);
+        bn_sms.setOnClickListener(this);
 
         button = (Button) findViewById(R.id.getCode);
         button.setOnClickListener(this);
 
     }
+
 
     @Override
     public void onClick(View v) {
@@ -137,33 +147,59 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.getCode:
                 getSms(phone.getText().toString());
                 break;
+
+            case R.id.bn_sms_login:
+                checkSms(phone.getText().toString(),gotcode.getText().toString());
+                break;
+
+            case R.id.login:
+                userlogin(phone.getText().toString(),pword.getText().toString());
+                break;
+
+
         }
-
-
     }
 
-    public void requestAPI(View view){
-        api.getUserInfo().enqueue(new Callback<User>() {
+    public void getSms(String phone){
+        api.getSms(phone).enqueue(new Callback<GetSMS>() {
             @Override
-            public void onResponse(Call<User> call, Response<User> response) {
-
-                    Toast.makeText(MainActivity.this,"Result="+response.body().getResult(), Toast.LENGTH_SHORT).show();
-
-
-
+            public void onResponse(Call<GetSMS> call, Response<GetSMS> response) {
+                if(response.body().getResult().getCode()==100){
+                    Toast.makeText(MainActivity.this, "发送验证码成功", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
-            public void onFailure(Call<User> call, Throwable t) {
-
+            public void onFailure(Call<GetSMS> call, Throwable t) {
+                Log.i("failure",t.getMessage());
             }
         });
 
+
     }
 
-    public void userlogin(View view) {
+    public void checkSms(String phone,String gotcode) {
+        api.checkSms(phone,gotcode).enqueue(new Callback<checkCode>() {
+            @Override
+            public void onResponse(Call<checkCode> call, Response<checkCode> response) {
+                if(response.body().getResult().getCode()==100){
+                    Toast.makeText(MainActivity.this, "验证码验证成功", Toast.LENGTH_SHORT).show();
+                }
+            }
 
-        api.userLogin("15555182321","qq123456").enqueue(new Callback<LoginBean>() {
+            @Override
+            public void onFailure(Call<checkCode> call, Throwable t) {
+                Log.i("failure",t.getMessage());
+            }
+
+        });
+    }
+
+
+
+    public void userlogin(String phone,String pword) {
+
+        api.userLogin(phone,pword).enqueue(new Callback<LoginBean>() {
             @Override
             public void onResponse(Call<LoginBean> call, Response<LoginBean> response) {
                 Toast.makeText(MainActivity.this, "账号="+response.body().getData().getList().getUSERNAME()+"登录成功", Toast.LENGTH_SHORT).show();
@@ -200,37 +236,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-//    public void getSms() {
-//        api.getSms("15555182321").enqueue(new Callback<GetSMS>() {
-//            @Override
-//            public void onResponse(Call<GetSMS> call, Response<GetSMS> response) {
-//                if(response.body().getResult().getCode()==100){
-//                    Toast.makeText(MainActivity.this, "发送验证码成功", Toast.LENGTH_SHORT).show();
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(Call<GetSMS> call, Throwable t) {
-//                Log.i("failure",t.getMessage());
-//            }
-//        });
-//    }
-
-  public void getSms(String phone){
-        api.getSms(phone).enqueue(new Callback<GetSMS>() {
+    public void requestAPI(View view){
+        api.getUserInfo().enqueue(new Callback<User>() {
             @Override
-            public void onResponse(Call<GetSMS> call, Response<GetSMS> response) {
-                if(response.body().getResult().getCode()==100){
-                    Toast.makeText(MainActivity.this, "发送验证码成功", Toast.LENGTH_SHORT).show();
-                }
+            public void onResponse(Call<User> call, Response<User> response) {
+
+                Toast.makeText(MainActivity.this,"Result="+response.body().getResult(), Toast.LENGTH_SHORT).show();
+
+
+
             }
 
             @Override
-            public void onFailure(Call<GetSMS> call, Throwable t) {
-                Log.i("failure",t.getMessage());
+            public void onFailure(Call<User> call, Throwable t) {
+
             }
         });
+
     }
+
+
 
 
 }
